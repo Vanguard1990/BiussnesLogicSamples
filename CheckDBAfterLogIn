@@ -1,5 +1,5 @@
-        public bool CzyWaluty = "False";
-        public bool CzyNIP = "False";
+        public string CzyWaluty = "False";
+        public string CzyNIP = "False";
 		
         private void Zaloguj()
         {

@@ -5,8 +5,8 @@
         {
             try
             {
-			  // something 
-			    if (AppState.Oper != 0)
+		// something 
+		if (AppState.Oper != 0)
                 {
                     SprawdziWykonaj_Integralnosc_WIELO_WALUTOWA();
                 }
@@ -15,7 +15,7 @@
             {
                 DialogStatement.ShowError(ex);
             }
-		}
+	}
 
         #region Metody Integracji Wielowalutowej
 

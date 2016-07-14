@@ -1,0 +1,265 @@
+        public bool CzyWaluty = "False";
+        public bool CzyNIP = "False";
+		
+        private void Zaloguj()
+        {
+            try
+            {
+			  // something 
+			    if (AppState.Oper != 0)
+                {
+                    SprawdziWykonaj_Integralnosc_WIELO_WALUTOWA();
+                }
+			}
+		    catch (Exception ex)
+            {
+                DialogStatement.ShowError(ex);
+            }
+		}
+
+        #region Metody Integracji Wielowalutowej
+
+        private void SprawdziWykonaj_Integralnosc_WIELO_WALUTOWA()
+        {
+            // Sprawdzenie czy wykonać, które segmenty integralności
+            CzyWykonac_Integralnosc_WIELOWALUTOWOSC();
+			//
+            // Kolejne segmenty integralności w ifie
+            if (CzyWaluty == "True")
+            {
+                WykonajIntegralnoscWalut();
+            }
+            else if (CzyNIP == "True")
+            {
+                WykonajIntegralnoscEURONIP();
+            }
+        }
+		
+        private void CzyWykonac_Integralnosc_WIELOWALUTOWOSC()
+        {
+            using (SqlConnection konekt = new SqlConnection(Databases.SkarbDB.ConnectionString))
+            {
+                try
+                {
+                    konekt.Open();
+                    CzyWaluty = CzyIstnieje_ID_WALUTY_w_KONT_PLAN(konekt);
+                    CzyNIP = CzyIstnieje_EURONIP_w_KONTRAHENCI(konekt);
+                }
+                catch (Exception ex)
+                {
+                    DialogStatement.ShowError(ex.Message);
+                }
+                finally
+                {
+                    konekt.Close();
+                }
+
+            }
+        }
+        private string CzyIstnieje_ID_WALUTY_w_KONT_PLAN(SqlConnection konekt)
+        {
+            DataTable IntegralnoscWaluta = new DataTable();
+            SqlDataAdapter adapter = new SqlDataAdapter();
+            DataTable IntegralnoscWalutaWartosci = new DataTable();
+            
+            using (SqlCommand cmdSelect = konekt.CreateCommand())
+            {
+                // Jeśli kolumna nie istnieje zmień na True i wykonaj integracje
+                cmdSelect.CommandText = @"  IF EXISTS (SELECT * FROM SKARB.sys.columns WHERE sys.columns.name = 'ID_WALUTY' and OBJECT_ID = OBJECT_ID(N'dbo.T_FKD_KONT_PLAN'))
+                                                    BEGIN 
+	                                                    SELECT 'False' as Bool 
+                                                    END
+  IF NOT EXISTS (SELECT * FROM SKARB.sys.columns WHERE sys.columns.name = 'ID_WALUTY' and OBJECT_ID = OBJECT_ID(N'dbo.T_FKD_KONT_PLAN'))
+                                                    BEGIN 
+	                                                    SELECT 'True' as Bool
+                                                    END";
+                IntegralnoscWaluta.TableName = "CzyIstniejeKolumna";
+                adapter.SelectCommand = cmdSelect;
+                adapter.Fill(IntegralnoscWaluta);
+
+                CzyWaluty = IntegralnoscWaluta.Rows[0][0].ToString();
+                // Jeśli w kolumnie ID_WALUTY wystepuje 1 lub 2 zmień na True i wykonaj integracje
+                cmdSelect.CommandText = @"SELECT CASE WHEN COUNT(ID_WALUTY) > 0 THEN 'True' ELSE 'False' END AS IloscStarychIDwaluty
+                                                    FROM T_FKD_KONT_PLAN
+                                                    WHERE ID_WALUTY = 2 or ID_WALUTY = 1";
+
+                IntegralnoscWalutaWartosci.TableName = "CzyKODyIstnieja";
+                adapter = new SqlDataAdapter();
+                adapter.SelectCommand = cmdSelect;
+                adapter.Fill(IntegralnoscWalutaWartosci);
+                CzyWaluty = IntegralnoscWalutaWartosci.Rows[0][0].ToString();
+            }
+
+            return CzyWaluty;
+        }
+        private string CzyIstnieje_EURONIP_w_KONTRAHENCI(SqlConnection konekt)
+        {
+            DataTable TablicaIntegralnosciNIP = new DataTable();
+            SqlDataAdapter adapter = new SqlDataAdapter();
+
+
+            using (SqlCommand cmdSelect = konekt.CreateCommand())
+            {
+                cmdSelect.CommandText = @"IF EXISTS (SELECT * FROM SKARB.sys.columns WHERE sys.columns.name = 'EURONIP' and OBJECT_ID = OBJECT_ID(N'dbo.T_FKK_KONTRAHENCI'))
+                                                    BEGIN 
+	                                                    SELECT 'False' as Bool 
+                                                    END
+                                                  IF NOT EXISTS (SELECT * FROM SKARB.sys.columns WHERE sys.columns.name = 'EURONIP' and OBJECT_ID = OBJECT_ID(N'dbo.T_FKK_KONTRAHENCI'))
+                                                    BEGIN 
+	                                                    SELECT 'True' as Bool  
+                                                    END";
+                
+                TablicaIntegralnosciNIP.TableName = "Tablica";
+                adapter.SelectCommand = cmdSelect;
+                adapter.Fill(TablicaIntegralnosciNIP);
+                CzyNIP = TablicaIntegralnosciNIP.Rows[0][0].ToString();
+            }
+
+            return CzyNIP;
+        }
+
+		
+        private void WykonajIntegralnoscWalut()
+        {
+            using (SqlConnection konekt = new SqlConnection(Databases.SkarbDB.ConnectionString))
+            {
+                SqlTransaction trans = null;
+                try
+                {
+                    konekt.Open();
+                    trans = konekt.BeginTransaction();
+
+                    DodajUzupełnij_ID_WALUTY_w_KONT_PLAN(konekt, ref trans);
+                    Zmodyfikuj_ID_WALUTY_w_ZAPIS_KSIEG(konekt, ref trans);
+
+                    trans.Commit();
+
+                }
+                catch (Exception ex)
+                {
+                    trans.Rollback();
+                    DialogStatement.ShowError(ex.Message);
+                }
+                finally
+                {
+                    konekt.Close();
+                }
+
+            }
+        }
+		private void DodajUzupełnij_ID_WALUTY_w_KONT_PLAN(SqlConnection konekt, ref SqlTransaction trans)
+        {
+            using (SqlCommand cmdCreate = konekt.CreateCommand())
+            {
+                cmdCreate.Transaction = trans;
+                cmdCreate.CommandText = @"
+                                                IF NOT EXISTS (SELECT * FROM SKARB.sys.columns WHERE sys.columns.name = 'ID_WALUTY' and OBJECT_ID = OBJECT_ID(N'dbo.T_FKD_KONT_PLAN'))
+                                                BEGIN
+                                                ALTER TABLE [SKARB].[dbo].[T_FKD_KONT_PLAN] ADD ID_WALUTY int
+                                                END
+                                                    ";
+                cmdCreate.ExecuteNonQuery();
+            }
+            using (SqlCommand cmdUpdate = konekt.CreateCommand())
+            {
+                cmdUpdate.Transaction = trans;
+                cmdUpdate.CommandText = @"
+                                                Update [SKARB].[dbo].[T_FKD_KONT_PLAN] 
+                                            SET CZY_WALUTOWE = 0
+                                            WHERE CZY_WALUTOWE is null 
+                                                       ";
+                cmdUpdate.ExecuteNonQuery();
+            }
+            using (SqlCommand cmdUpdate = konekt.CreateCommand())
+            {
+                cmdUpdate.Transaction = trans;
+                cmdUpdate.CommandText = @"
+                                                Update [SKARB].[dbo].[T_FKD_KONT_PLAN] 
+                                            SET ID_WALUTY = 0
+                                            WHERE CZY_WALUTOWE is null 
+                                                       ";
+                cmdUpdate.ExecuteNonQuery();
+            }
+            using (SqlCommand cmdUpdate = konekt.CreateCommand())
+            {
+                cmdUpdate.Transaction = trans;
+                cmdUpdate.CommandText = @"
+                                            Update [SKARB].[dbo].[T_FKD_KONT_PLAN] 
+                                            SET ID_WALUTY = (case
+                                                    When CZY_WALUTOWE = 0 then 0
+                                                    When CZY_WALUTOWE = 1 then 978
+                                                    When CZY_WALUTOWE = 2 then 787
+                                                end)
+                                                       ";
+                cmdUpdate.ExecuteNonQuery();
+            }
+        }
+        private void Zmodyfikuj_ID_WALUTY_w_ZAPIS_KSIEG(SqlConnection konekt, ref SqlTransaction trans)
+        {
+            using (SqlCommand cmdUpdate = konekt.CreateCommand())
+            {
+                cmdUpdate.Transaction = trans;
+                cmdUpdate.CommandText = @"
+                                            Update T_FKD_ZAPIS_KSIEG 
+                                            SET ID_WALUTY = 0 
+                                            Where ID_WALUTY is null 
+                                                       ";
+                cmdUpdate.ExecuteNonQuery();
+            }
+            using (SqlCommand cmdUpdate = konekt.CreateCommand())
+            {
+                cmdUpdate.Transaction = trans;
+                cmdUpdate.CommandText = @"
+                                            Update T_FKD_ZAPIS_KSIEG 
+                                            SET ID_WALUTY = (case
+                                                    when ID_WALUTY = 0 then 0
+                                                    when ID_WALUTY = 1 then 787
+                                                    when ID_WALUTY = 2 then 978
+                                                end)
+                                                       ";
+                cmdUpdate.ExecuteNonQuery();
+            }
+
+        }
+
+
+        private void WykonajIntegralnoscEURONIP()
+        {
+            using (SqlConnection konekt = new SqlConnection(Databases.SkarbDB.ConnectionString))
+            {
+                SqlTransaction trans = null;
+
+                try
+                {
+                    konekt.Open();
+                    trans = konekt.BeginTransaction();
+                    using (SqlCommand cmdCreate = konekt.CreateCommand())
+                    {
+                        cmdCreate.Transaction = trans;
+                        cmdCreate.CommandText = @"
+                                                IF NOT EXISTS (SELECT * FROM SKARB.sys.columns WHERE sys.columns.name = 'EURONIP' and OBJECT_ID = OBJECT_ID(N'dbo.T_FKK_KONTRAHENCI'))
+                                                BEGIN
+                                                    ALTER TABLE [SKARB].[dbo].[T_FKK_KONTRAHENCI] ADD EURONIP varchar(14)
+                                                END
+                                                    ";
+                        cmdCreate.ExecuteNonQuery();
+                    }
+                    trans.Commit();
+
+                }
+                catch (Exception ex)
+                {
+                    trans.Rollback();
+                    DialogStatement.ShowError(ex.Message);
+                }
+                finally
+                {
+                    konekt.Close();
+                }
+
+
+
+            }
+        }
+
+        #endregion		

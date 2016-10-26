@@ -1,0 +1,18 @@
+private void JesliZapisWalutowy()
+        {
+            if (_dataGridZapisyFull.CurrentRow.Cells["ID_WALUTY"].Value != DBNull.Value)
+            {
+                if (Convert.ToInt32(_dataGridZapisyFull.CurrentRow.Cells["ID_WALUTY"].Value) != 0)
+                {
+                    btniPrzypiszWal.Enabled = true;
+                }
+                else
+                {
+                    btniPrzypiszWal.Enabled = false;
+                }
+            }
+            else
+            {
+                btniPrzypiszWal.Enabled = false;
+            }
+        }

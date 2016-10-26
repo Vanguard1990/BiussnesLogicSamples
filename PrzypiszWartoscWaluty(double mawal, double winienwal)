@@ -1,0 +1,36 @@
+private void PrzypiszWartoscWaluty(double mawal, double winienwal)
+        {
+            string idzapisu = _dataGridZapisyFull.CurrentRow.Cells["ID_ZAPISU"].Value.ToString();
+            string CommandaText = string.Empty;
+
+
+
+            using (SqlConnection konekt = new SqlConnection(Databases.SkarbDB.ConnectionString))
+            {
+                SqlTransaction trans = null;
+                konekt.Open();
+                trans = konekt.BeginTransaction();
+                try
+                {
+                    CommandaText = @"UPDATE T_FKD_ZAPIS_KSIEG
+SET  MA_WAL = " + mawal + " ,WINIEN_WAL = " + winienwal + "WHERE [ID_ZAPISU] = " + idzapisu;
+
+                    using (SqlCommand cmdCreate = konekt.CreateCommand())
+                    {
+                        cmdCreate.Transaction = trans;
+                        cmdCreate.CommandText = CommandaText;
+                        cmdCreate.ExecuteNonQuery();
+                    }
+                    trans.Commit();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Problem w PrzypiszWartoscWaluty(). Problem z połączeniem z bazą. >>> " + ex.Message);
+                    trans.Rollback();
+                }
+                finally
+                {
+                    konekt.Close();
+                }
+            }
+        }

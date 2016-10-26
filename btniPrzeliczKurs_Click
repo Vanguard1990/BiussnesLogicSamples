@@ -1,0 +1,29 @@
+     private void btniPrzeliczKurs_Click(object sender, EventArgs e)
+        {
+            foreach (DataGridViewRow Row in _dataGridZapisyFull.Rows)
+            {
+                decimal Ma, Winien, Ma_Wal, Winien_Wal;
+                Ma = Winien = Ma_Wal = Winien_Wal = 0;
+                Ma = Math.Round(Convert.ToDecimal(Row.Cells["mADataGridViewTextBoxColumn"].Value.ToString()), 4);
+                Winien = Math.Round(Convert.ToDecimal(Row.Cells["wINIENDataGridViewTextBoxColumn"].Value.ToString()), 4);
+
+                if (Ma != 0 && Row.Cells["MA_WAL"].Value.ToString() != string.Empty)
+                {
+                    Ma_Wal = Math.Round(Convert.ToDecimal(Row.Cells["MA_WAL"].Value.ToString()), 4);
+                }
+                else if (Winien != 0 && Row.Cells["WINIEN_WAL"].Value.ToString() != string.Empty)
+                {
+                    Winien_Wal = Math.Round(Convert.ToDecimal(Row.Cells["WINIEN_WAL"].Value.ToString()), 4);
+                }
+
+
+                if (Ma != 0 && Ma_Wal != 0)
+                {
+                    Row.Cells["KURS"].Value = Math.Round(Math.Round(Convert.ToDecimal(Row.Cells["mADataGridViewTextBoxColumn"].Value.ToString()), 4) / Math.Round(Convert.ToDecimal(Row.Cells["MA_WAL"].Value.ToString()), 4), 4);
+                }
+                else if (Winien != 0 && Winien_Wal != 0)
+                {
+                    Row.Cells["KURS"].Value = Math.Round(Math.Round(Convert.ToDecimal(Row.Cells["wINIENDataGridViewTextBoxColumn"].Value.ToString()), 4) / Math.Round(Convert.ToDecimal(Row.Cells["WINIEN_WAL"].Value.ToString()), 4), 4);
+                }
+            }
+        }

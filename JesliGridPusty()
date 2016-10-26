@@ -1,0 +1,22 @@
+private void JesliGridPusty()
+        {
+            if (_dataGridZapisyFull.Rows.Count != 0)
+            {
+                int Status = CzyWprzygotowaniu(Convert.ToInt32(_dataGridZapisyFull.CurrentRow.Cells["ID_ZAPISU"].Value.ToString()));
+
+                if (Status == 3)
+                {
+                    btniPerSaldoPoZaksiegowaniu.Enabled = true;
+                }
+                else
+                {
+                    btniPerSaldoPoZaksiegowaniu.Enabled = false;
+                }
+                JesliZapisWalutowy();
+            }
+            else
+            {
+                btniPerSaldoPoZaksiegowaniu.Enabled = false;
+                
+            }
+        }

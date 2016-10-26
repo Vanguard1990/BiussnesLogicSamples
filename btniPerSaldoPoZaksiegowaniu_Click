@@ -1,0 +1,15 @@
+ private void btniPerSaldoPoZaksiegowaniu_Click(object sender, EventArgs e)
+        {
+            if (_dataGridZapisyFull.SelectedCells.Count > 0)
+            {
+                try
+                {
+                    DialogStanKsiegiZapis DSKZ = new DialogStanKsiegiZapis(_dataGridZapisyFull, true);
+                    DSKZ.ShowDialog();
+                }
+                catch (Exception ex)
+                {
+                    DialogStatement.ShowError(string.Format("Wystąpił błąd podczas odczytywania danych z bazy  \n{0} {1}", ex.Message, ((ex.InnerException != null) ? " ----> " + ex.InnerException.Message : "")));
+                }
+            }
+        }

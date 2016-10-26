@@ -1,0 +1,22 @@
+private int CzyWprzygotowaniu(int ID)
+        {
+            DataTable CzyWprzygotowaniu = new DataTable();
+            CzyWprzygotowaniu.TableName = "Table";
+            SqlDataAdapter adapter = new SqlDataAdapter(@"SELECT SDOK.ID_STATUS_DOK
+                                                            FROM [T_FKD_ZAPIS_KSIEG] ZK
+                                                            JOIN [T_FKD_DOKUMENTY] DOK ON DOK.ID_DOKUMENTU = ZK.ID_DOKUMENTU
+                                                            JOIN [T_FKS_STATUS_DOK] SDOK ON SDOK.ID_STATUS_DOK = DOK.ID_STATUS
+                                                            WHERE ZK.ID_ZAPISU = " + ID, Databases.SkarbDB.ConnectionString);
+            try
+            {
+                adapter.Fill(CzyWprzygotowaniu);
+                adapter.Dispose();
+                int Przygotowanie = Convert.ToInt32(CzyWprzygotowaniu.Rows[0][0]);
+
+                return Przygotowanie;
+            }
+            catch (Exception ex)
+            {
+                return 0;
+            }
+        }

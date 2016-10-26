@@ -1,0 +1,4 @@
+private void _dataGridZapisyFull_SelectionChanged(object sender, EventArgs e)
+        {
+            JesliGridPusty();
+        }

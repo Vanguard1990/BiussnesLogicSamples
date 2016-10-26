@@ -1,0 +1,30 @@
+private void btniPrzypiszWal_Click(object sender, EventArgs e)
+        {
+            double winienwal = 0;
+            double mawal = 0;
+            bool WnMa;
+
+            WnMa = true;
+            if (Convert.ToInt32(_dataGridZapisyFull.CurrentRow.Cells["mADataGridViewTextBoxColumn"].Value) != 0 && _dataGridZapisyFull.CurrentRow.Cells["mADataGridViewTextBoxColumn"].Value != DBNull.Value)
+            {
+                WnMa = true;
+            }
+            else if (Convert.ToInt32(_dataGridZapisyFull.CurrentRow.Cells["wINIENDataGridViewTextBoxColumn"].Value) != 0 && _dataGridZapisyFull.CurrentRow.Cells["wINIENDataGridViewTextBoxColumn"].Value != DBNull.Value)
+            {
+                WnMa = false;
+            }
+
+
+            OknaDialogowe.DialogWalutaZapis DlgWalutaZapis = new OknaDialogowe.DialogWalutaZapis(WnMa);
+            DlgWalutaZapis.ShowDialog();
+
+            winienwal = DlgWalutaZapis.gWinWal;
+            mawal = DlgWalutaZapis.gMaWal;
+            bool AnulujWasClick = DlgWalutaZapis.gAnuluj;
+            if (AnulujWasClick == true)
+            {
+                return;
+            }
+            PrzypiszWartoscWaluty(mawal, winienwal);
+            _buttonOdswiez_Click(sender, e);
+        }
